@@ -194,6 +194,23 @@ __global__ void preprocessCUDA(int P, int D, int M,
 	if (!in_frustum(idx, orig_points, viewmatrix, projmatrix, prefiltered, p_view))
 		return;
 
+	// add filter here to help better render masked gaussians - 2025/05/06
+	if (opacities[idx] == 0.0f) {
+		radii[idx] = 0;
+		tiles_touched[idx] = 0;
+		depths[idx] = 0.0f;
+		points_xy_image[idx] = make_float2(0.0f, 0.0f);
+		float* cov3D = cov3Ds + idx * 6;
+		for (int i = 0; i < 6; ++i) cov3D[i] = 0.0f;
+		rgb[idx * NUM_CHANNELS + 0] = 0.0f;
+		rgb[idx * NUM_CHANNELS + 1] = 0.0f;
+		rgb[idx * NUM_CHANNELS + 2] = 0.0f;
+		conic_opacity[idx] = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+		return;
+	}
+
+
+
 	// Transform point by projecting
 	float3 p_orig = { orig_points[3 * idx], orig_points[3 * idx + 1], orig_points[3 * idx + 2] };
 	float4 p_hom = transformPoint4x4(p_orig, projmatrix);
